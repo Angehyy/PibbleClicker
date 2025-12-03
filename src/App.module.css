@@ -1,39 +1,10 @@
-.main {
-  display: flex;
-  justify-content: space-between;
-  align-items: center; /* vertical center */
-  height: 100vh;
-  padding: 20px;
+.shaking {
+  animation: shake 0.2s ease-in-out;
 }
 
-.leftSide {
-  width: 20%;
-  display: flex;
-  flex-direction: column;
-  gap: 10px; /* space between buttons */
-}
-
-.pibbleZone {
-  flex: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.pibbleImg {
-  width: 200px;
-  height: auto;
-  justify-content: center;
-}
-
-
-.rightSide {
-  width: 20%;
-  display: flex;
-  flex-direction: column;
-  gap: 10px; /* must include px */
-  align-items: flex-start;
-  justify-content: flex-start;
+@keyframes shake {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  25% { transform: translateX(-4px) translateY(-3px); }
+  50% { transform: translateX(4px) translateY(3px); }
+  75% { transform: translateX(-2px) translateY(2px); }
 }

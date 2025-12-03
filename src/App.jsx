@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
-import pibble from "./assets/pibble.jpg";
+import pibble1 from "./assets/pibble-1.webp";
+import pibble2 from "./assets/pibble-2.webp";
+import pibble3 from "./assets/pibble-3.webp";
+import pibble4 from "./assets/pibble-4.webp";
+import autoUpgrade from "./assets/auto-upgrade.webp";
 import styles from "./App.module.css";
 
 import { 
@@ -74,25 +78,72 @@ function App() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [slotToDelete, setSlotToDelete] = useState(null);
 
+  // Default upgrades structure
+  const defaultUpgrades = [
+    { id: 1, label: "Click Upgrade", cost: 50, value: 5, level: 0, pps: 0, speedMultiplier: 0, criticalChance: 0, criticalMultiplier: 0 },
+    { id: 2, label: "Auto Upgrade", cost: 100, value: 0, level: 0, pps: 1, speedMultiplier: 0, criticalChance: 0, criticalMultiplier: 0 },
+    { id: 3, label: "Auto Income Speed", cost: 150, value: 0, level: 0, pps: 0, speedMultiplier: 0.1, criticalChance: 0, criticalMultiplier: 0 },
+    { id: 4, label: "Critical Click", cost: 200, value: 0, level: 0, pps: 0, speedMultiplier: 0, criticalChance: 0.05, criticalMultiplier: 3 }
+  ];
+
   // Game state
   const [count, setCount] = useState(0);
   const [pibblesPerClick, setPibblesPerClick] = useState(1);
   const [totalClicks, setTotalClicks] = useState(0);
-  const [upgrades, setUpgrades] = useState([
-    { id: 1, label: "Click Upgrade 1", cost: 50, value: 5, level: 0, pps: 0 },
-    { id: 2, label: "Click Upgrade 2", cost: 100, value: 10, level: 0, pps: 0 },
-    { id: 3, label: "Click Upgrade 3", cost: 200, value: 20, level: 0, pps: 0 },
-    { id: 4, label: "Auto Upgrade 1", cost: 100, value: 0, level: 0, pps: 1 },
-    { id: 5, label: "Auto Upgrade 2", cost: 300, value: 0, level: 0, pps: 5 }
-  ]);
+  const [upgrades, setUpgrades] = useState(defaultUpgrades);
 
   // Achievements
   const [unlockedAchievements, setUnlockedAchievements] = useState(new Set());
   const [achievementNotification, setAchievementNotification] = useState(null);
   const [achievementsDialogOpen, setAchievementsDialogOpen] = useState(false);
 
+  // Critical click notification
+  const [criticalNotification, setCriticalNotification] = useState(null);
+
+  // Shake animation state
+  const [isShaking, setIsShaking] = useState(false);
+  const [autoUpgradeShaking, setAutoUpgradeShaking] = useState(false);
+  const [currentPibbleImage, setCurrentPibbleImage] = useState(pibble1);
+  const [imageChangeNotification, setImageChangeNotification] = useState(null);
+
   // Save slots
   const [saveSlots, setSaveSlots] = useState(() => getStoredSlots());
+
+  // Get pibble image based on Click Upgrade level
+  const getPibbleImage = () => {
+    const clickUpgrade = upgrades.find(u => u.id === 1);
+    const level = clickUpgrade?.level || 0;
+    
+    if (level >= 100) return pibble4;
+    if (level >= 50) return pibble3;
+    if (level >= 15) return pibble2;
+    return pibble1;
+  };
+
+  // Update pibble image when Click Upgrade level changes
+  useEffect(() => {
+    if (currentScreen !== SCREENS.GAME) return;
+    
+    const newImage = getPibbleImage();
+    const clickUpgrade = upgrades.find(u => u.id === 1);
+    const level = clickUpgrade?.level || 0;
+    
+    // Check if image should change by comparing with current
+    if (newImage !== currentPibbleImage) {
+      let message = '';
+      if (level >= 100) message = 'Pibble evolved to MAX level!';
+      else if (level >= 50) message = 'Pibble evolved to level 3!';
+      else if (level >= 15) message = 'Pibble evolved to level 2!';
+      
+      if (message) {
+        setImageChangeNotification(message);
+        setTimeout(() => setImageChangeNotification(null), 3000);
+      }
+      
+      setCurrentPibbleImage(newImage);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [upgrades, currentScreen]);
 
   // Load game state from localStorage
   const loadGameState = (slotKey) => {
@@ -103,8 +154,15 @@ function App() {
         setCount(gameState.count || 0);
         setPibblesPerClick(gameState.pibblesPerClick || 1);
         setTotalClicks(gameState.totalClicks || 0);
-        setUpgrades(gameState.upgrades || upgrades);
+        setUpgrades(gameState.upgrades || defaultUpgrades);
         setUnlockedAchievements(new Set(gameState.unlockedAchievements || []));
+        // Set the correct pibble image based on loaded upgrades
+        const clickUpgrade = (gameState.upgrades || defaultUpgrades).find(u => u.id === 1);
+        const level = clickUpgrade?.level || 0;
+        if (level >= 100) setCurrentPibbleImage(pibble4);
+        else if (level >= 50) setCurrentPibbleImage(pibble3);
+        else if (level >= 15) setCurrentPibbleImage(pibble2);
+        else setCurrentPibbleImage(pibble1);
         return true;
       }
     } catch (error) {
@@ -141,16 +199,6 @@ function App() {
       alert('Error saving game. Please try again.');
     }
   };
-
-  // Auto-save every 30 seconds
-  useEffect(() => {
-    if (currentScreen === SCREENS.GAME && selectedSlot) {
-      const autoSaveInterval = setInterval(() => {
-        saveGameState(selectedSlot);
-      }, 30000);
-      return () => clearInterval(autoSaveInterval);
-    }
-  }, [currentScreen, selectedSlot, count, pibblesPerClick, totalClicks, upgrades, unlockedAchievements]);
 
   // Persist game state locally on every change
   useEffect(() => {
@@ -212,9 +260,39 @@ function App() {
     }
   }, [achievementNotification]);
 
+  // Auto-hide critical notification after 2 seconds
+  useEffect(() => {
+    if (criticalNotification) {
+      const timer = setTimeout(() => {
+        setCriticalNotification(null);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [criticalNotification]);
+
   // Increment main Pibble counter
   const handlePibbleClick = () => {
-    setCount((prev) => prev + pibblesPerClick);
+    // Trigger shake animation
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 200);
+    
+    // Calculate total critical chance and multiplier
+    const totalCriticalChance = upgrades.reduce((sum, u) => sum + u.criticalChance * u.level, 0);
+    const totalCriticalMultiplier = upgrades.reduce((sum, u) => sum + u.criticalMultiplier * u.level, 0);
+    
+    // Check for critical hit
+    const isCritical = Math.random() < totalCriticalChance;
+    let earnedPibbles = pibblesPerClick;
+    
+    if (isCritical && totalCriticalMultiplier > 0) {
+      earnedPibbles = Math.floor(pibblesPerClick * totalCriticalMultiplier);
+      setCriticalNotification({
+        message: `CRITICAL HIT!`,
+        bonus: earnedPibbles - pibblesPerClick
+      });
+    }
+    
+    setCount((prev) => prev + earnedPibbles);
     setTotalClicks((prev) => prev + 1);
   };
 
@@ -242,12 +320,20 @@ function App() {
   useEffect(() => {
     if (currentScreen !== SCREENS.GAME) return;
     
+    // Calculate total speed multiplier (reduces interval time)
+    const totalSpeedMultiplier = upgrades.reduce((sum, u) => sum + u.speedMultiplier * u.level, 0);
+    const baseInterval = 1000; // 1 second base
+    const intervalTime = Math.max(100, baseInterval / (1 + totalSpeedMultiplier)); // Minimum 100ms
+    
     const interval = setInterval(() => {
       const totalPPS = upgrades.reduce((sum, u) => sum + u.pps * u.level, 0);
       if (totalPPS > 0) {
         setCount((prev) => prev + totalPPS);
+        // Trigger shake animation for auto-upgrade indicator
+        setAutoUpgradeShaking(true);
+        setTimeout(() => setAutoUpgradeShaking(false), 200);
       }
-    }, 1000);
+    }, intervalTime);
 
     return () => clearInterval(interval);
   }, [upgrades, currentScreen]);
@@ -272,14 +358,9 @@ function App() {
     setCount(0);
     setPibblesPerClick(1);
     setTotalClicks(0);
-    setUpgrades([
-      { id: 1, label: "Click Upgrade 1", cost: 50, value: 5, level: 0, pps: 0 },
-      { id: 2, label: "Click Upgrade 2", cost: 100, value: 10, level: 0, pps: 0 },
-      { id: 3, label: "Click Upgrade 3", cost: 200, value: 20, level: 0, pps: 0 },
-      { id: 4, label: "Auto Upgrade 1", cost: 100, value: 0, level: 0, pps: 1 },
-      { id: 5, label: "Auto Upgrade 2", cost: 300, value: 0, level: 0, pps: 5 }
-    ]);
+    setUpgrades(defaultUpgrades);
     setUnlockedAchievements(new Set());
+    setCurrentPibbleImage(pibble1);
     setSelectedSlot(slotKey);
     setCurrentScreen(SCREENS.GAME);
   };
@@ -373,11 +454,14 @@ function App() {
         height="100vh"
         sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', p: 4 }}
       >
-        <Typography variant="h2" sx={{ mb: 4, color: 'white', fontWeight: 'bold' }}>
+        <Typography variant="h2" sx={{ mb: 2, color: 'white', fontWeight: 'bold' }}>
           Select Save Slot
         </Typography>
+        <Typography variant="body1" sx={{ mb: 4, color: 'white', opacity: 0.9 }}>
+          Create multiple save files to try different strategies!
+        </Typography>
         <Stack direction="row" spacing={4} sx={{ width: '80%', maxWidth: 900 }}>
-          {['slot1', 'slot2', 'slot3'].map((slotKey) => {
+          {['slot1', 'slot2', 'slot3'].map((slotKey, index) => {
             const slotData = saveSlots[slotKey];
             const hasData = slotData !== null;
             
@@ -394,9 +478,16 @@ function App() {
                 onClick={() => handleSlotSelect(slotKey)}
               >
                 <CardContent>
-                  <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold' }}>
-                    {slotKey.toUpperCase().replace('SLOT', 'Slot ')}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
+                    <img 
+                      src={[pibble1, pibble2, pibble3][index]} 
+                      alt={`pibble ${index + 1}`}
+                      style={{ width: '40px', height: '40px', borderRadius: '8px' }}
+                    />
+                    <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                      {slotKey.toUpperCase().replace('SLOT', 'Slot ')}
+                    </Typography>
+                  </Box>
                   {hasData ? (
                     <>
                       <Typography variant="body2" sx={{ mb: 1 }}>
@@ -438,7 +529,7 @@ function App() {
                     </>
                   ) : (
                     <Typography variant="body1" sx={{ color: 'text.secondary', mt: 2 }}>
-                      Empty Slot
+                      Empty Slot - Click to Start New Game
                     </Typography>
                   )}
                 </CardContent>
@@ -467,7 +558,7 @@ function App() {
 
   // Render Game Screen
   return (
-    <Box display="flex" height="100vh" p={4} sx={{ background: '#f5f5f5' }}>
+    <Box display="flex" height="100vh" p={4} sx={{ background: '#ffffff' }}>
       {/* Left Side - Save & Quit */}
       <Box flex={1} display="flex" flexDirection="column" alignItems="flex-start">
         <Button 
@@ -500,22 +591,95 @@ function App() {
         <Typography variant="h5" sx={{ mb: 1 }}>
           Per Click: {pibblesPerClick}
         </Typography>
+        {(() => {
+          const totalCriticalChance = upgrades.reduce((sum, u) => sum + u.criticalChance * u.level, 0);
+          const totalCriticalMultiplier = upgrades.reduce((sum, u) => sum + u.criticalMultiplier * u.level, 0);
+          if (totalCriticalChance > 0 && totalCriticalMultiplier > 0) {
+            return (
+              <Typography variant="body2" sx={{ mb: 1, color: '#ff6b00', fontWeight: 'bold' }}>
+                Critical: {(totalCriticalChance * 100).toFixed(1)}% chance for {totalCriticalMultiplier.toFixed(1)}x
+              </Typography>
+            );
+          }
+          return null;
+        })()}
         <Typography variant="body1" sx={{ mb: 2, color: 'text.secondary' }}>
           Total Clicks: {totalClicks.toLocaleString()}
         </Typography>
-        <Button 
-          onClick={handlePibbleClick}
-          sx={{ 
-            '&:hover': { transform: 'scale(1.05)' },
-            transition: 'transform 0.1s',
-            p: 0
-          }}
-        >
-          <img src={pibble} alt="pibble" height="500px" style={{ cursor: 'pointer' }} />
-        </Button>
-        <Typography variant="h6" sx={{ mt: 2 }}>
-          Wash my Bellay
-        </Typography>
+        {(() => {
+          const clickUpgrade = upgrades.find(u => u.id === 1);
+          const level = clickUpgrade?.level || 0;
+          let evolutionText = '';
+          if (level >= 100) evolutionText = 'MAX Evolution';
+          else if (level >= 50) evolutionText = 'Evolution Level 3';
+          else if (level >= 15) evolutionText = 'Evolution Level 2';
+          else evolutionText = 'Evolution Level 1';
+          
+          return (
+            <Typography variant="body2" sx={{ mb: 2, color: '#667eea', fontWeight: 'bold' }}>
+              {evolutionText}
+            </Typography>
+          );
+        })()}
+        <Box display="flex" alignItems="center" gap={3}>
+          <Button 
+            onClick={handlePibbleClick}
+            disableRipple
+            sx={{ 
+              '&:hover': { 
+                transform: 'scale(1.05)',
+                background: 'transparent',
+                boxShadow: 'none'
+              },
+              '&:active': { transform: 'scale(1.05)' },
+              transition: 'transform 0.1s',
+              p: 0,
+              background: 'transparent',
+              boxShadow: 'none'
+            }}
+          >
+            <img 
+              src={currentPibbleImage} 
+              alt="pibble" 
+              height="500px" 
+              className={isShaking ? styles.shaking : ''}
+              style={{ 
+                cursor: 'pointer',
+                pointerEvents: 'none',
+                transition: 'opacity 0.3s ease-in-out'
+              }} 
+            />
+          </Button>
+          {(() => {
+            const autoUpgradeLevel = upgrades.find(u => u.id === 2)?.level || 0;
+            if (autoUpgradeLevel > 0) {
+              return (
+                <Box 
+                  sx={{ 
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 1
+                  }}
+                >
+                  <img 
+                    src={autoUpgrade} 
+                    alt="auto upgrade" 
+                    height="150px"
+                    className={autoUpgradeShaking ? styles.shaking : ''}
+                    style={{ 
+                      transition: 'opacity 0.3s ease-in-out'
+                    }} 
+                  />
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                    Auto Income
+                  </Typography>
+                </Box>
+              );
+            }
+            return null;
+          })()}
+        </Box>
       </Box>
 
       {/* Right Side - Upgrades */}
@@ -551,6 +715,16 @@ function App() {
                 {upgrade.pps > 0 && (
                   <Typography variant="body2">
                     +{upgrade.pps} Pibbles/sec
+                  </Typography>
+                )}
+                {upgrade.speedMultiplier > 0 && (
+                  <Typography variant="body2">
+                    +{(upgrade.speedMultiplier * 100).toFixed(0)}% Auto Income Speed
+                  </Typography>
+                )}
+                {upgrade.criticalChance > 0 && (
+                  <Typography variant="body2" sx={{ color: '#ff6b00', fontWeight: 'bold' }}>
+                    +{(upgrade.criticalChance * 100).toFixed(1)}% Critical Chance ({upgrade.criticalMultiplier.toFixed(1)}x multiplier)
                   </Typography>
                 )}
                 <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 'bold' }}>
@@ -650,6 +824,55 @@ function App() {
           </Typography>
           <Typography variant="body2" sx={{ mt: 0.5, opacity: 0.9 }}>
             {achievementNotification?.description}
+          </Typography>
+        </Alert>
+      </Snackbar>
+
+      {/* Critical Hit Notification */}
+      <Snackbar
+        open={criticalNotification !== null}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{ mt: 8 }}
+      >
+        <Alert 
+          severity="warning" 
+          sx={{ 
+            fontSize: '1.2rem',
+            minWidth: '250px',
+            background: 'linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%)',
+            color: 'white',
+            fontWeight: 'bold',
+            '& .MuiAlert-icon': { fontSize: '2.5rem', color: 'white' }
+          }}
+        >
+          <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+            {criticalNotification?.message}
+          </Typography>
+          <Typography variant="h6">
+            +{criticalNotification?.bonus?.toLocaleString()} Bonus Pibbles!
+          </Typography>
+        </Alert>
+      </Snackbar>
+
+      {/* Image Change Notification */}
+      <Snackbar
+        open={imageChangeNotification !== null}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{ mt: 12 }}
+      >
+        <Alert 
+          severity="info" 
+          sx={{ 
+            fontSize: '1.1rem',
+            minWidth: '300px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            fontWeight: 'bold',
+            '& .MuiAlert-icon': { fontSize: '2rem', color: 'white' }
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            {imageChangeNotification}
           </Typography>
         </Alert>
       </Snackbar>
