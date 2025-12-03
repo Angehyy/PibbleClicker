@@ -413,12 +413,12 @@ function App() {
         alignItems="center" 
         justifyContent="center" 
         height="100vh"
-        sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+        sx={{ background: '#FFFAF5' }}
       >
-        <Typography variant="h1" sx={{ mb: 4, color: 'white', fontWeight: 'bold' }}>
+        <Typography variant="h1" sx={{ mb: 4, color: '#D6A8A8', fontWeight: 'bold' }}>
           Pibble Clicker
         </Typography>
-        <Typography variant="h5" sx={{ mb: 6, color: 'white', opacity: 0.9 }}>
+        <Typography variant="h5" sx={{ mb: 6, color: '#F3964A', opacity: 0.9 }}>
           Wash my Bellay!
         </Typography>
         <Button 
@@ -430,7 +430,7 @@ function App() {
             px: 6, 
             py: 2,
             background: 'white',
-            color: '#667eea',
+            color: '#5E6E84',
             '&:hover': {
               background: '#f0f0f0',
               transform: 'scale(1.05)'
@@ -452,12 +452,12 @@ function App() {
         alignItems="center" 
         justifyContent="center" 
         height="100vh"
-        sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', p: 4 }}
+        sx={{ background: '#FFFAF5', p: 4 }}
       >
-        <Typography variant="h2" sx={{ mb: 2, color: 'white', fontWeight: 'bold' }}>
+        <Typography variant="h2" sx={{ mb: 2, color: '#D6A8A8', fontWeight: 'bold' }}>
           Select Save Slot
         </Typography>
-        <Typography variant="body1" sx={{ mb: 4, color: 'white', opacity: 0.9 }}>
+        <Typography variant="body1" sx={{ mb: 4, color: '#F3964A', opacity: 0.9 }}>
           Create multiple save files to try different strategies!
         </Typography>
         <Stack direction="row" spacing={4} sx={{ width: '80%', maxWidth: 900 }}>
@@ -579,7 +579,12 @@ function App() {
             sx={{ 
               fontSize: '1rem',
               px: 3,
-              py: 1
+              py: 1,
+              backgroundColor: '#D6A8A8',       // new color
+              color: '#ffffff',                  // text color
+              '&:hover': {
+                backgroundColor: '#c69797',      // slightly darker hover
+              }
             }}
           >
             Achievements
@@ -616,7 +621,15 @@ function App() {
           else evolutionText = 'Evolution Level 1';
           
           return (
-            <Typography variant="body2" sx={{ mb: 2, color: '#667eea', fontWeight: 'bold' }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                mb: 2, 
+                color: '#667eea',        // you can keep or make a brighter shade
+                fontWeight: 'bold', 
+                fontSize: '1rem',        // slightly larger than default
+              }}
+            >
               {evolutionText}
             </Typography>
           );
@@ -682,62 +695,71 @@ function App() {
         </Box>
       </Box>
 
-      {/* Right Side - Upgrades */}
-      <Box flex={1} display="flex" flexDirection="column" gap={2}>
-        <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-          Upgrades
-        </Typography>
-        {upgrades.map((upgrade) => {
-          const canAfford = count >= upgrade.cost;
-          return (
-            <Paper key={upgrade.id} elevation={3} sx={{ p: 2 }}>
-              <Button
-                variant={canAfford ? "contained" : "outlined"}
-                fullWidth
-                disabled={!canAfford}
-                onClick={() => handleUpgrade(upgrade.id)}
-                sx={{ 
-                  display: "flex", 
-                  flexDirection: "column", 
-                  alignItems: "flex-start",
-                  textTransform: 'none',
-                  py: 1.5
-                }}
-              >
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                  {upgrade.label}
-                </Typography>
-                {upgrade.value > 0 && (
-                  <Typography variant="body2">
-                    +{upgrade.value} Pibbles/Click
-                  </Typography>
-                )}
-                {upgrade.pps > 0 && (
-                  <Typography variant="body2">
-                    +{upgrade.pps} Pibbles/sec
-                  </Typography>
-                )}
-                {upgrade.speedMultiplier > 0 && (
-                  <Typography variant="body2">
-                    +{(upgrade.speedMultiplier * 100).toFixed(0)}% Auto Income Speed
-                  </Typography>
-                )}
-                {upgrade.criticalChance > 0 && (
-                  <Typography variant="body2" sx={{ color: '#ff6b00', fontWeight: 'bold' }}>
-                    +{(upgrade.criticalChance * 100).toFixed(1)}% Critical Chance ({upgrade.criticalMultiplier.toFixed(1)}x multiplier)
-                  </Typography>
-                )}
-                <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 'bold' }}>
-                  Cost: {upgrade.cost.toLocaleString()} Pibbles
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Level: {upgrade.level}
-                </Typography>
-              </Button>
-            </Paper>
-          );
-        })}
-      </Box>
+{/* Right Side - Upgrades */}
+<Box flex={1} display="flex" flexDirection="column" gap={2} sx={{ maxWidth: 280 }}>
+  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+    Upgrades
+  </Typography>
+  {upgrades.map((upgrade) => {
+    const canAfford = count >= upgrade.cost;
+    return (
+      <Paper key={upgrade.id} elevation={3} sx={{ p: 1 }}>
+        <Button
+          variant="contained"
+          fullWidth
+          disabled={!canAfford}
+          onClick={() => handleUpgrade(upgrade.id)}
+          sx={{ 
+            display: "flex", 
+            flexDirection: "column", 
+            alignItems: "flex-start",
+            textTransform: 'none',
+            py: 1.5,
+            backgroundColor: '#5E6E84',        // button color
+            color: '#ffffff',                  // text color
+            '&:hover': {
+              backgroundColor: '#4a5669',      // slightly darker hover
+            },
+            '&.Mui-disabled': {
+              backgroundColor: '#a0a8b5',      // disabled color
+              color: '#e0e0e0',
+            }
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+            {upgrade.label}
+          </Typography>
+          {upgrade.value > 0 && (
+            <Typography variant="body2">
+              +{upgrade.value} Pibbles/Click
+            </Typography>
+          )}
+          {upgrade.pps > 0 && (
+            <Typography variant="body2">
+              +{upgrade.pps} Pibbles/sec
+            </Typography>
+          )}
+          {upgrade.speedMultiplier > 0 && (
+            <Typography variant="body2">
+              +{(upgrade.speedMultiplier * 100).toFixed(0)}% Auto Income Speed
+            </Typography>
+          )}
+          {upgrade.criticalChance > 0 && (
+            <Typography variant="body2" sx={{ color: '#ff6b00', fontWeight: 'bold' }}>
+              +{(upgrade.criticalChance * 100).toFixed(1)}% Critical Chance ({upgrade.criticalMultiplier.toFixed(1)}x multiplier)
+            </Typography>
+          )}
+          <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 'bold' }}>
+            Cost: {upgrade.cost.toLocaleString()} Pibbles
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            Level: {upgrade.level}
+          </Typography>
+        </Button>
+      </Paper>
+    );
+  })}
+</Box>
 
       {/* Achievements Overlay Dialog */}
       <Dialog 
